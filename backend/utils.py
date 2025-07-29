@@ -9,7 +9,7 @@ def confirm_email(token_key: str):
     except EmailConfirmToken.DoesNotExist:
         raise ValueError("Invalid token")
 
-    if hasattr(token, 'is_expired') and token.is_expired:
+    if hasattr(token, "is_expired") and token.is_expired:
         token.delete()
         raise ValueError("Token expired")
 

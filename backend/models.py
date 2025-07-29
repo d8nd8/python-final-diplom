@@ -1,4 +1,5 @@
 import secrets
+from datetime import timedelta
 
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
@@ -13,6 +14,19 @@ USER_TYPE_CHOICES = (
     ("shop", "Магазин"),
     ("buyer", "Покупатель"),
     ("admin", "Администратор"),
+)
+
+CONTACT_TYPE_CHOICES = (
+    ("email", "e-mail"),
+    ("phone", "Телефон"),
+)
+
+ORDER_STATUS_CHOICES = (
+    ("pending", "В ожидании"),
+    ("confirmed", "Подтвержден"),
+    ("shipped", "Отправлен"),
+    ("delivered", "Доставлен"),
+    ("cancelled", "Отменен"),
 )
 
 
@@ -83,10 +97,10 @@ class User(AbstractUser):
             "Unselect this instead of deleting accounts."
         ),
     )
-    type = models.CharField(
+    user_type = models.CharField(
         verbose_name="Тип пользователя",
         choices=USER_TYPE_CHOICES,
-        max_length=5,
+        max_length=32,
         default="buyer",
     )
 
@@ -103,7 +117,7 @@ class Shop(models.Model):
     """Модель магазина"""
 
     name = models.CharField(max_length=255, unique=True)
-    url = models.TextField(blank=True, null=True)
+    url = models.URLField(blank=True, null=True)
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="shop", verbose_name="Пользователь"
     )
@@ -113,16 +127,29 @@ class Shop(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = "магазин"
+        verbose_name_plural = "Список магазинов"
+        ordering = ("name",)
+
 
 class Category(models.Model):
     """Модель категории товаров"""
 
     shops = models.ManyToManyField(
-        Shop, related_name="categories", verbose_name="Магазины"
+        Shop, related_name="categories", verbose_name="Магазины", blank=True
     )
     name = models.CharField(
         max_length=255, unique=True, verbose_name="Название категории"
     )
+
+    class Meta:
+        verbose_name = "категория"
+        verbose_name_plural = "категории"
+        ordering = ("name",)
+
+    def __str__(self):
+        return self.name
 
 
 class Product(models.Model):
@@ -135,6 +162,14 @@ class Product(models.Model):
         related_name="products",
         verbose_name="Категория",
     )
+
+    class Meta:
+        verbose_name = "товар"
+        verbose_name_plural = "товары"
+        ordering = ("name",)
+
+    def __str__(self):
+        return self.name
 
 
 class ProductInfo(models.Model):
@@ -153,18 +188,36 @@ class ProductInfo(models.Model):
         related_name="product_info",
         verbose_name="Магазин",
     )
-    name = models.CharField(max_length=255, verbose_name="Название товара")
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена")
     quantity = models.PositiveIntegerField(verbose_name="Количество")
     price_rrc = models.DecimalField(
         max_digits=10, decimal_places=2, verbose_name="Цена RRC", blank=True, null=True
     )
 
+    class Meta:
+        verbose_name = "информация о товаре"
+        verbose_name_plural = "информации о товарах"
+        ordering = ("product",)
+        indexes = [
+            models.Index(fields=["product", "shop"]),
+        ]
+
+    def __str__(self):
+        return f"{self.product.name} @ {self.shop.name}"
+
 
 class Parameter(models.Model):
     """Модель параметра товара"""
 
     name = models.CharField(max_length=255, verbose_name="Название параметра")
+
+    class Meta:
+        verbose_name = "параметр"
+        verbose_name_plural = "параметры"
+        ordering = ("name",)
+
+    def __str__(self):
+        return self.name
 
 
 class ProductParameter(models.Model):
@@ -193,6 +246,9 @@ class ProductParameter(models.Model):
             ),
         ]
 
+    def __str__(self):
+        return f"{self.product_info.product.name} - {self.parameter.name}: {self.value}"
+
 
 class Order(models.Model):
     """Модель заказа"""
@@ -209,7 +265,10 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
     status = models.CharField(
-        max_length=20, default="pending", verbose_name="Статус заказа"
+        max_length=20,
+        default="pending",
+        verbose_name="Статус заказа",
+        choices=ORDER_STATUS_CHOICES,
     )
     contact = models.ForeignKey(
         "Contact",
@@ -221,6 +280,11 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order {self.id} by {self.user.email} at {self.shop.name}"
+
+    class Meta:
+        verbose_name = "заказ"
+        verbose_name_plural = "заказы"
+        ordering = ("-created_at",)
 
 
 class OrderItem(models.Model):
@@ -247,11 +311,12 @@ class OrderItem(models.Model):
         return f"Item {self.id} in Order {self.order.id}"
 
     class Meta:
-        verbose_name = "Позиция заказа"
-        verbose_name_plural = "Позиции заказов"
+        verbose_name = "позиция заказа"
+        verbose_name_plural = "позиции заказов"
+        ordering = ("product",)
         constraints = [
             models.UniqueConstraint(
-                fields=["order_id", "product_info"], name="unique_order_item"
+                fields=["order", "product"], name="unique_order_item"
             ),
         ]
 
@@ -279,19 +344,27 @@ class Contact(models.Model):
     phone = models.CharField(
         max_length=20, verbose_name="Телефон", blank=True, null=True
     )
-    type = models.CharField(
+    contact_type = models.CharField(
         max_length=20,
-        choices=[("email", "Email"), ("phone", "Phone")],
+        choices=CONTACT_TYPE_CHOICES,
         verbose_name="Тип контакта",
     )
     value = models.CharField(max_length=255, verbose_name="Значение контакта")
 
     def __str__(self):
-        return self.type
+        return self.contact_type
+
+    class Meta:
+        verbose_name = "контакт"
+        verbose_name_plural = "контакты"
 
 
 class EmailConfirmToken(models.Model):
     """Модель токена подтверждения электронной почты"""
+
+    @staticmethod
+    def generate_token():
+        return secrets.token_urlsafe(32)
 
     user = models.ForeignKey(
         User,
@@ -299,13 +372,18 @@ class EmailConfirmToken(models.Model):
         related_name="email_tokens",
         verbose_name="Пользователь",
     )
-    token = models.CharField(max_length=64, unique=True, verbose_name="Токен")
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        verbose_name="Токен",
+        default=generate_token,
+        editable=False,
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
-    expires_at = models.DateTimeField(verbose_name="Дата истечения срока действия")
-
-    @staticmethod
-    def generate_token():
-        return secrets.token_urlsafe(32)
+    expires_at = models.DateTimeField(
+        verbose_name="Дата истечения срока действия",
+        default=lambda: timezone.now() + timedelta(hours=24),
+    )
 
     @property
     def is_expired(self):
