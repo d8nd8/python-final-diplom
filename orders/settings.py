@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    'drf_spectacular',
     "orders",
 ]
 
@@ -79,15 +80,32 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-LANGUAGE_CODE = "ru"
-
-TIME_ZONE = "UTC"
-
-USE_I18N = True
-
+TIME_ZONE = 'Europe/Moscow'
 USE_TZ = True
-
-
-STATIC_URL = "static/"
+USE_I18N = True
+LOCALE_PATHS = [os.path.join(BASE_DIR, 'locale')]
+LANGUAGE_CODE = 'ru'
+USE_L10N = False
+DATE_INPUT_FORMATS = ['%d.%m.%Y']
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Netology shop API',
+    'DESCRIPTION': 'Документация API для дипломной работы',
+    'VERSION': '0.0.1',
+
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_SETTINGS': {
+        'filter': True,
+        'displayRequestDuration': True
+    },
+
+    'COMPONENT_SPLIT_REQUEST': True,
+}
