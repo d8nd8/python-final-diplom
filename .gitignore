@@ -119,3 +119,4 @@ __pypackages__/
 *.swp
 *.swo
 *.orig
+./backend/migrations
