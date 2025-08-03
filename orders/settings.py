@@ -23,9 +23,11 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'drf_spectacular',
-    "orders",
+    "drf_spectacular",
+    "backend",
 ]
+
+AUTH_USER_MODEL = 'backend.User'
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -38,6 +40,10 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "orders.urls"
+
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 
 TEMPLATES = [
     {
@@ -58,11 +64,14 @@ WSGI_APPLICATION = "orders.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": DB_ENGINE,
+        "NAME": DB_NAME,
+        "USER": DB_USER,
+        "PASSWORD": DB_PASSWORD,
+        "HOST": DB_HOST,
+        "PORT": DB_PORT,
     }
 }
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -80,32 +89,27 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-TIME_ZONE = 'Europe/Moscow'
+TIME_ZONE = "Europe/Moscow"
 USE_TZ = True
 USE_I18N = True
-LOCALE_PATHS = [os.path.join(BASE_DIR, 'locale')]
-LANGUAGE_CODE = 'ru'
+LOCALE_PATHS = [os.path.join(BASE_DIR, "locale")]
+LANGUAGE_CODE = "ru"
 USE_L10N = False
-DATE_INPUT_FORMATS = ['%d.%m.%Y']
+DATE_INPUT_FORMATS = ["%d.%m.%Y"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Netology shop API',
-    'DESCRIPTION': 'Документация API для дипломной работы',
-    'VERSION': '0.0.1',
-
-    'SERVE_INCLUDE_SCHEMA': False,
-    'SWAGGER_UI_SETTINGS': {
-        'filter': True,
-        'displayRequestDuration': True
-    },
-
-    'COMPONENT_SPLIT_REQUEST': True,
+    "TITLE": "Netology shop API",
+    "DESCRIPTION": "Документация API для дипломной работы",
+    "VERSION": "0.0.1",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SWAGGER_UI_SETTINGS": {"filter": True, "displayRequestDuration": True},
+    "COMPONENT_SPLIT_REQUEST": True,
 }

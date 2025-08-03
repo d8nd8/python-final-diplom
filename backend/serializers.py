@@ -1,0 +1,56 @@
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth import authenticate
+from rest_framework import serializers
+from .models import User, EmailConfirmToken
+
+
+class RegisterSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для регистрации пользователя.
+    """
+
+    password = serializers.CharField(
+        write_only=True, required=True, validators=[validate_password]
+    )
+    password_confirm = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User
+        fields = (
+            "email",
+            "password",
+            "password_confirm",
+            "first_name",
+            "last_name",
+            "user_type",
+        )
+
+    def validate(self, data):
+        if data["password"] != data["password_confirm"]:
+            raise serializers.ValidationError("Пароли не совпадают.")
+        return data
+
+    def create(self, validated_data):
+        validated_data.pop("password_confirm")
+        user = User.objects.create_user(**validated_data)
+        EmailConfirmToken.objects.create(user=user)
+        return user
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        user = authenticate(email=data["email"], password=data["password"])
+        if not user:
+            raise serializers.ValidationError("Неверный email или пароль.")
+        if not user.is_active:
+            raise serializers.ValidationError("Профиль пользоваьеля не подтвержден.")
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        refresh = RefreshToken.for_user(user)
+        return {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        }

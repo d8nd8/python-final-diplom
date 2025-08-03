@@ -30,6 +30,12 @@ ORDER_STATUS_CHOICES = (
 )
 
 
+def generate_token():
+    return secrets.token_urlsafe(32)
+
+def default_expiration():
+    return timezone.now() + timedelta(hours=24)
+
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
@@ -362,10 +368,6 @@ class Contact(models.Model):
 class EmailConfirmToken(models.Model):
     """Модель токена подтверждения электронной почты"""
 
-    @staticmethod
-    def generate_token():
-        return secrets.token_urlsafe(32)
-
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -382,7 +384,7 @@ class EmailConfirmToken(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     expires_at = models.DateTimeField(
         verbose_name="Дата истечения срока действия",
-        default=lambda: timezone.now() + timedelta(hours=24),
+        default=default_expiration,
     )
 
     @property
