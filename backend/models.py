@@ -33,8 +33,10 @@ ORDER_STATUS_CHOICES = (
 def generate_token():
     return secrets.token_urlsafe(32)
 
+
 def default_expiration():
     return timezone.now() + timedelta(hours=24)
+
 
 class UserManager(BaseUserManager):
     use_in_migrations = True

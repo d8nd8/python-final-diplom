@@ -10,5 +10,5 @@ urlpatterns = [
         SpectacularSwaggerView.as_view(url_name="schema-yaml"),
         name="swagger",
     ),
-    path("api/", include("backend.urls"))
+    path("/", include("backend.urls")),
 ]

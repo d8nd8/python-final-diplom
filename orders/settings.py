@@ -24,10 +24,12 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "drf_spectacular",
+    "django_filters",
+    "rest_framework",
     "backend",
 ]
 
-AUTH_USER_MODEL = 'backend.User'
+AUTH_USER_MODEL = "backend.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -102,6 +104,29 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.BasicAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.AnonRateThrottle",
+    ],
+
+    "DEFAULT_THROTTLE_RATES": {
+        "user": "100/hour",
+        "anon": "10/minute",
+    },
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+    ],
 }
 
 
@@ -109,6 +134,17 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Netology shop API",
     "DESCRIPTION": "Документация API для дипломной работы",
     "VERSION": "0.0.1",
+    "SECURITY_SCHEMES": {
+        "bearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "Введите JWT токен как: Bearer <token>"
+        }
+    },
+    "SECURITY": [
+        {"bearerAuth": []},
+    ],
     "SERVE_INCLUDE_SCHEMA": False,
     "SWAGGER_UI_SETTINGS": {"filter": True, "displayRequestDuration": True},
     "COMPONENT_SPLIT_REQUEST": True,

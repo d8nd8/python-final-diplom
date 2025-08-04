@@ -13,6 +13,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         write_only=True, required=True, validators=[validate_password]
     )
     password_confirm = serializers.CharField(write_only=True, required=True)
+    token = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
@@ -23,6 +24,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "user_type",
+            "token",
         )
 
     def validate(self, data):
@@ -36,6 +38,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         EmailConfirmToken.objects.create(user=user)
         return user
 
+    def get_token(self, user):
+        token_obj = (
+            EmailConfirmToken.objects.filter(user=user).order_by("-created_at").first()
+        )
+        return token_obj.token if token_obj else None
+
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -46,7 +54,7 @@ class LoginSerializer(serializers.Serializer):
         if not user:
             raise serializers.ValidationError("Неверный email или пароль.")
         if not user.is_active:
-            raise serializers.ValidationError("Профиль пользоваьеля не подтвержден.")
+            raise serializers.ValidationError("Профиль пользователя не подтвержден.")
         from rest_framework_simplejwt.tokens import RefreshToken
 
         refresh = RefreshToken.for_user(user)
@@ -54,3 +62,13 @@ class LoginSerializer(serializers.Serializer):
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         }
+
+
+class PartnerUpdateSerializer(serializers.Serializer):
+    url = serializers.URLField(help_text="Прямая ссылка на YAML-файл прайса")
+
+
+class ParameterSerializer(serializers.Serializer):
+    class Meta:
+        fields = ("name",)
+
