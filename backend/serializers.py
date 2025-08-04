@@ -1,7 +1,7 @@
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
 from rest_framework import serializers
-from .models import User, EmailConfirmToken
+from .models import User, EmailConfirmToken, ProductParameter, ProductInfo
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -68,7 +68,36 @@ class PartnerUpdateSerializer(serializers.Serializer):
     url = serializers.URLField(help_text="Прямая ссылка на YAML-файл прайса")
 
 
-class ParameterSerializer(serializers.Serializer):
-    class Meta:
-        fields = ("name",)
+class ProductParameterSerializer(serializers.ModelSerializer):
+    parameter = serializers.CharField(source="parameter.name")
 
+    class Meta:
+        model = ProductParameter
+        fields = ["parameter", "value"]
+
+
+class ProductSerializer(serializers.Serializer):
+    name = serializers.CharField(source="product.name")
+    category = serializers.CharField(source="product.category.name")
+    characteristics = ProductParameterSerializer(source="parameters", many=True)
+    description = serializers.CharField(source="product.description", allow_blank=True)
+    quantity = serializers.IntegerField()
+    supplier = serializers.CharField(source="shop.name")
+    price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    price_rrc = serializers.DecimalField(
+        max_digits=10, decimal_places=2, allow_null=True
+    )
+
+    class Meta:
+        model = ProductInfo
+        fields = [
+            "article",
+            "name",
+            "model",
+            "category",
+            "supplier",
+            "characteristics",
+            "price",
+            "price_rrc",
+            "quantity",
+        ]

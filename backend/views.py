@@ -2,15 +2,16 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from requests import get
-from rest_framework import generics, status
+from rest_framework import generics, status, filters as drf_filters
 from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework.views import APIView
 from yaml import safe_load
 
-
+from .filters import ProductFilter
 from .models import (
     EmailConfirmToken,
     Shop,
@@ -20,7 +21,12 @@ from .models import (
     ProductParameter,
     Parameter,
 )
-from .serializers import RegisterSerializer, LoginSerializer, PartnerUpdateSerializer
+from .serializers import (
+    RegisterSerializer,
+    LoginSerializer,
+    PartnerUpdateSerializer,
+    ProductSerializer,
+)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -111,7 +117,7 @@ class PartnerUpdateView(APIView):
     parser_classes = [JSONParser]
 
     @extend_schema(
-        summary="Обновление товаров партнера",
+        summary="Обновление товаров магазина",
         request=PartnerUpdateSerializer,
         responses={
             200: OpenApiResponse(description="Товары успешно обновлены"),
@@ -186,3 +192,30 @@ class PartnerUpdateView(APIView):
             {"detail": "Товары успешно обновлены."},
             status=status.HTTP_200_OK,
         )
+
+
+@extend_schema(
+    summary="Получение списка товаров",
+    responses={
+        200: OpenApiResponse(
+            response=ProductSerializer(many=True), description="Успешный список товаров"
+        ),
+    },
+    tags=["Товары"],
+)
+class ProductListView(generics.ListAPIView):
+    """
+    Список товаров с фильтрами.
+    """
+
+    queryset = ProductInfo.objects.all()
+    serializer_class = ProductSerializer
+    filter_backends = [
+        DjangoFilterBackend,
+        drf_filters.SearchFilter,
+        drf_filters.OrderingFilter,
+    ]
+    filterset_class = ProductFilter
+    search_fields = ["product__name", "product__description", "shop__name"]
+    ordering_fields = ["price", "quantity", "product__name"]
+    ordering = ["product__name"]
