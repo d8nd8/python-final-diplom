@@ -329,6 +329,20 @@ class OrderItem(models.Model):
         ]
 
 
+class Cart(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="cart", verbose_name="Пользователь")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items", verbose_name="Корзина")
+    product_info = models.ForeignKey(ProductInfo, on_delete=models.CASCADE, verbose_name="Информация о товаре")
+    quantity = models.PositiveIntegerField(verbose_name="Количество", default=1)
+
+    class Meta:
+        unique_together = ('cart', 'product_info')
+
+
 class Contact(models.Model):
     """Модель контакта"""
 

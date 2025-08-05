@@ -80,7 +80,6 @@ class ProductSerializer(serializers.Serializer):
     name = serializers.CharField(source="product.name")
     category = serializers.CharField(source="product.category.name")
     characteristics = ProductParameterSerializer(source="parameters", many=True)
-    description = serializers.CharField(source="product.description", allow_blank=True)
     quantity = serializers.IntegerField()
     supplier = serializers.CharField(source="shop.name")
     price = serializers.DecimalField(max_digits=10, decimal_places=2)

@@ -10,8 +10,10 @@ click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.3.0
 Django==5.2.4
+django-filter==25.1
 django-rest-passwordreset==1.5.0
 djangorestframework==3.14.0
+djangorestframework_simplejwt==5.5.1
 dotenv==0.9.9
 drf-spectacular==0.28.0
 idna==3.10
@@ -21,12 +23,15 @@ jsonschema-specifications==2025.4.1
 kombu==5.5.4
 packaging==25.0
 prompt_toolkit==3.0.51
+psycopg2-binary==2.9.10
+PyJWT==2.10.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
 pytz==2025.2
 PyYAML==6.0.2
 referencing==0.36.2
 requests==2.31.0
+rest-framework-simplejwt==0.0.2
 rpds-py==0.26.0
 ruff==0.12.5
 six==1.17.0

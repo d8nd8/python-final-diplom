@@ -9,9 +9,6 @@ class ProductFilter(django_filters.FilterSet):
     category = django_filters.CharFilter(
         field_name="product__category__name", lookup_expr="icontains", label="Категория"
     )
-    description = django_filters.CharFilter(
-        field_name="product__description", lookup_expr="icontains", label="Описание"
-    )
     supplier = django_filters.CharFilter(
         field_name="shop__name", lookup_expr="icontains", label="Поставщик"
     )
@@ -32,3 +29,5 @@ class ProductFilter(django_filters.FilterSet):
         model = ProductInfo
         # explicit empty fields to avoid auto-generation
         fields = []
+
+

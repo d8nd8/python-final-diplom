@@ -117,7 +117,7 @@ class PartnerUpdateView(APIView):
     parser_classes = [JSONParser]
 
     @extend_schema(
-        summary="Обновление товаров магазина",
+        summary="Обновление товаров магазинатам ",
         request=PartnerUpdateSerializer,
         responses={
             200: OpenApiResponse(description="Товары успешно обновлены"),
