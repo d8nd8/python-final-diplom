@@ -1,7 +1,7 @@
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
 from rest_framework import serializers
-from .models import User, EmailConfirmToken, ProductParameter, ProductInfo, Contact
+from .models import User, EmailConfirmToken, ProductParameter, ProductInfo, Contact, OrderItem, Order
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -103,6 +103,7 @@ class ProductSerializer(serializers.Serializer):
 
 
 class CartItemSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(source="product_info.product.name", read_only=True)
     shop = serializers.CharField(source="product_info.shop.name", read_only=True)
     quantity = serializers.IntegerField()
@@ -115,7 +116,7 @@ class CartItemSerializer(serializers.Serializer):
         fields = ["id", "name", "shop", "quantity", "price", "subtotal"]
 
     def get_subtotal(self, obj):
-        return obj.quantity * obj.profuct_info.price
+        return obj.quantity * obj.product_info.price
 
 
 class AddressSerializer(serializers.Serializer):
@@ -142,24 +143,42 @@ class ContactSerializer(serializers.Serializer):
         ]
         read_only_fields = ["id"]
 
-        def create(self, validated_data):
-            address_data = validated_data.pop("address", None)
-            user = self.context["request"].user
-            return Contact.objects.create(
-                user=user,
-                **validated_data,
-                **address_data,
-            )
+    def create(self, validated_data):
+        address_data = validated_data.pop("address", None)
+        user = self.context["request"].user
+        return Contact.objects.create(
+            user=user,
+            **validated_data,
+            **address_data,
+        )
 
-        def update(self, instance, validated_data):
-            address_data = validated_data.pop("address", None)
-            for attr, value in validated_data.items():
-                setattr(instance, attr, value)
-            for attr, value in address_data.items():
-                setattr(instance.address, attr, value)
-            instance.save()
-            return instance
+    def update(self, instance, validated_data):
+        address_data = validated_data.pop("address", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        for attr, value in address_data.items():
+            setattr(instance.address, attr, value)
+        instance.save()
+        return instance
 
-        def delete(self, instance):
-            instance.delete()
-            return instance
+
+class ConfirmOrderSerializer(serializers.Serializer):
+    contact_id = serializers.IntegerField()
+
+
+class OrderItemSerializer(serializers.Serializer):
+    product = serializers.CharField(source="product.name", read_only=True)
+    quantity = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = ["product", "quantity"]
+
+
+class OrderSerializer(serializers.Serializer):
+    items = OrderItemSerializer(many=True, read_only=True, source="items")
+    contact = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ["id", "created_at", "status", "items", "contact"]

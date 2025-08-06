@@ -29,7 +29,7 @@ from .models import (
     Parameter,
     Cart,
     CartItem,
-    Contact,
+    Contact, Order, OrderItem,
 )
 from .serializers import (
     RegisterSerializer,
@@ -37,7 +37,7 @@ from .serializers import (
     PartnerUpdateSerializer,
     ProductSerializer,
     CartItemSerializer,
-    ContactSerializer,
+    ContactSerializer, ConfirmOrderSerializer, OrderSerializer,
 )
 
 
@@ -282,6 +282,34 @@ class CartViewSet(viewsets.GenericViewSet):
         item = get_object_or_404(CartItem, pk=request.data.get("item_id"), cart=cart)
         item.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["post"], url_path="confirm")
+    def confirm(self, request, pk=None):
+        cart = self.get_object()
+        serializer = ConfirmOrderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        contact = get_object_or_404(
+            Contact,
+            pk=serializer.validated_data["contact_id"],
+            user=request.user,
+        )
+        order = Order.objects.create(
+            user=request.user,
+            shop=cart.user.shop,
+            contact=contact,
+            status="confirmed",
+        )
+        for item in cart.items.all():
+            OrderItem.objects.create(
+                order=order,
+                product=item.product_info,
+                shop=item.product_info.shop,
+                quantity=item.quantity,
+            )
+
+        cart.items.all().delete()
+
+        return Response(OrderSerializer(order).data, status=201)
 
 
 @extend_schema_view(
