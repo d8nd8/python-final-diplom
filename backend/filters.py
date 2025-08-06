@@ -29,5 +29,3 @@ class ProductFilter(django_filters.FilterSet):
         model = ProductInfo
         # explicit empty fields to avoid auto-generation
         fields = []
-
-

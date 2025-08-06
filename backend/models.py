@@ -16,11 +16,6 @@ USER_TYPE_CHOICES = (
     ("admin", "Администратор"),
 )
 
-CONTACT_TYPE_CHOICES = (
-    ("email", "e-mail"),
-    ("phone", "Телефон"),
-)
-
 ORDER_STATUS_CHOICES = (
     ("pending", "В ожидании"),
     ("confirmed", "Подтвержден"),
@@ -330,51 +325,46 @@ class OrderItem(models.Model):
 
 
 class Cart(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="cart", verbose_name="Пользователь")
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="cart", verbose_name="Пользователь"
+    )
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
 
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items", verbose_name="Корзина")
-    product_info = models.ForeignKey(ProductInfo, on_delete=models.CASCADE, verbose_name="Информация о товаре")
+    cart = models.ForeignKey(
+        Cart, on_delete=models.CASCADE, related_name="items", verbose_name="Корзина"
+    )
+    product_info = models.ForeignKey(
+        ProductInfo, on_delete=models.CASCADE, verbose_name="Информация о товаре"
+    )
     quantity = models.PositiveIntegerField(verbose_name="Количество", default=1)
 
     class Meta:
-        unique_together = ('cart', 'product_info')
+        unique_together = ("cart", "product_info")
 
 
 class Contact(models.Model):
-    """Модель контакта"""
-
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name="contacts",
         verbose_name="Пользователь",
     )
+    last_name = models.CharField(max_length=150, verbose_name="Фамилия")
+    first_name = models.CharField(max_length=150, verbose_name="Имя")
+    patronymic = models.CharField(max_length=150, verbose_name="Отчество", blank=True, null=True)
+    email = models.EmailField(verbose_name="E-mail", blank=True, null=True)
+    phone = models.CharField(max_length=20, verbose_name="Телефон", blank=True, null=True)
     city = models.CharField(max_length=100, verbose_name="Город", blank=True, null=True)
-    street = models.CharField(
-        max_length=255, verbose_name="Улица", blank=True, null=True
-    )
+    street = models.CharField(max_length=255, verbose_name="Улица", blank=True, null=True)
     house = models.CharField(max_length=10, verbose_name="Дом", blank=True, null=True)
-    building = models.CharField(
-        max_length=10, verbose_name="Корпус", blank=True, null=True
-    )
-    apartment = models.CharField(
-        max_length=10, verbose_name="Квартира", blank=True, null=True
-    )
-    phone = models.CharField(
-        max_length=20, verbose_name="Телефон", blank=True, null=True
-    )
-    contact_type = models.CharField(
-        max_length=20,
-        choices=CONTACT_TYPE_CHOICES,
-        verbose_name="Тип контакта",
-    )
-    value = models.CharField(max_length=255, verbose_name="Значение контакта")
+    building = models.CharField(max_length=10, verbose_name="Корпус", blank=True, null=True)
+    structure = models.CharField(max_length=10, verbose_name="Строение", blank=True, null=True)
+    apartment = models.CharField(max_length=10, verbose_name="Квартира", blank=True, null=True)
 
     def __str__(self):
-        return self.contact_type
+        return f"{self.last_name} {self.first_name}"
 
     class Meta:
         verbose_name = "контакт"
