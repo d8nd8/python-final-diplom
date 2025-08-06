@@ -1,7 +1,7 @@
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
 from rest_framework import serializers
-from .models import User, EmailConfirmToken, ProductParameter, ProductInfo
+from .models import User, EmailConfirmToken, ProductParameter, ProductInfo, Contact
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -100,3 +100,66 @@ class ProductSerializer(serializers.Serializer):
             "price_rrc",
             "quantity",
         ]
+
+
+class CartItemSerializer(serializers.Serializer):
+    name = serializers.CharField(source="product_info.product.name", read_only=True)
+    shop = serializers.CharField(source="product_info.shop.name", read_only=True)
+    quantity = serializers.IntegerField()
+    price = serializers.DecimalField(
+        source="product_info.price", max_digits=10, decimal_places=2, read_only=True
+    )
+    subtotal = serializers.SerializerMethodField()
+
+    class Meta:
+        fields = ["id", "name", "shop", "quantity", "price", "subtotal"]
+
+    def get_subtotal(self, obj):
+        return obj.quantity * obj.profuct_info.price
+
+
+class AddressSerializer(serializers.Serializer):
+    city = serializers.CharField(required=False, allow_null=True, max_length=100)
+    street = serializers.CharField(required=False, allow_null=True, max_length=255)
+    house = serializers.CharField(required=False, allow_null=True, max_length=10)
+    building = serializers.CharField(required=False, allow_null=True, max_length=10)
+    structure = serializers.CharField(required=False, allow_null=True, max_length=10)
+    apartment = serializers.CharField(required=False, allow_null=True, max_length=10)
+
+
+class ContactSerializer(serializers.Serializer):
+    address = AddressSerializer(required=False, allow_null=True)
+
+    class Meta:
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "patronymic",
+            "email",
+            "phone",
+            "address",
+        ]
+        read_only_fields = ["id"]
+
+        def create(self, validated_data):
+            address_data = validated_data.pop("address", None)
+            user = self.context["request"].user
+            return Contact.objects.create(
+                user=user,
+                **validated_data,
+                **address_data,
+            )
+
+        def update(self, instance, validated_data):
+            address_data = validated_data.pop("address", None)
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            for attr, value in address_data.items():
+                setattr(instance.address, attr, value)
+            instance.save()
+            return instance
+
+        def delete(self, instance):
+            instance.delete()
+            return instance

@@ -353,15 +353,27 @@ class Contact(models.Model):
     )
     last_name = models.CharField(max_length=150, verbose_name="Фамилия")
     first_name = models.CharField(max_length=150, verbose_name="Имя")
-    patronymic = models.CharField(max_length=150, verbose_name="Отчество", blank=True, null=True)
+    patronymic = models.CharField(
+        max_length=150, verbose_name="Отчество", blank=True, null=True
+    )
     email = models.EmailField(verbose_name="E-mail", blank=True, null=True)
-    phone = models.CharField(max_length=20, verbose_name="Телефон", blank=True, null=True)
+    phone = models.CharField(
+        max_length=20, verbose_name="Телефон", blank=True, null=True
+    )
     city = models.CharField(max_length=100, verbose_name="Город", blank=True, null=True)
-    street = models.CharField(max_length=255, verbose_name="Улица", blank=True, null=True)
+    street = models.CharField(
+        max_length=255, verbose_name="Улица", blank=True, null=True
+    )
     house = models.CharField(max_length=10, verbose_name="Дом", blank=True, null=True)
-    building = models.CharField(max_length=10, verbose_name="Корпус", blank=True, null=True)
-    structure = models.CharField(max_length=10, verbose_name="Строение", blank=True, null=True)
-    apartment = models.CharField(max_length=10, verbose_name="Квартира", blank=True, null=True)
+    building = models.CharField(
+        max_length=10, verbose_name="Корпус", blank=True, null=True
+    )
+    structure = models.CharField(
+        max_length=10, verbose_name="Строение", blank=True, null=True
+    )
+    apartment = models.CharField(
+        max_length=10, verbose_name="Квартира", blank=True, null=True
+    )
 
     def __str__(self):
         return f"{self.last_name} {self.first_name}"
