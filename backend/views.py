@@ -29,7 +29,9 @@ from .models import (
     Parameter,
     Cart,
     CartItem,
-    Contact, Order, OrderItem,
+    Contact,
+    Order,
+    OrderItem,
 )
 from .serializers import (
     RegisterSerializer,
@@ -37,7 +39,9 @@ from .serializers import (
     PartnerUpdateSerializer,
     ProductSerializer,
     CartItemSerializer,
-    ContactSerializer, ConfirmOrderSerializer, OrderSerializer,
+    ContactSerializer,
+    ConfirmOrderSerializer,
+    OrderSerializer,
 )
 
 
@@ -283,6 +287,11 @@ class CartViewSet(viewsets.GenericViewSet):
         item.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @extend_schema(
+        summary="Создать заказ из корзины",
+        description="На основе содержимого корзины и указанного contact_id создаёт новый Order",
+        tags=["Заказы"],
+    )
     @action(detail=True, methods=["post"], url_path="confirm")
     def confirm(self, request, pk=None):
         cart = self.get_object()
@@ -297,7 +306,7 @@ class CartViewSet(viewsets.GenericViewSet):
             user=request.user,
             shop=cart.user.shop,
             contact=contact,
-            status="confirmed",
+            status="pending",
         )
         for item in cart.items.all():
             OrderItem.objects.create(
@@ -354,3 +363,79 @@ class ContactViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        summary="Получить список заказов текущего пользователя",
+        description="Возвращает все заказы, сделанные авторизованным пользователем",
+        tags=["Заказы"],
+    ),
+    retrieve=extend_schema(
+        summary="Получить конкретный заказ",
+        description="Детальная информация по одному заказу",
+        tags=["Заказы"],
+    ),
+    create=extend_schema(
+        summary="Создать заказ",
+        description="Создание нового заказа на основе корзины пользователя",
+        tags=["Заказы"],
+    ),
+    update=extend_schema(
+        summary="Полное обновление заказа",
+        description="Обновление всех полей заказа",
+        tags=["Заказы"],
+    ),
+    partial_update=extend_schema(
+        summary="Частичное обновление заказа",
+        description="Обновление отдельных полей заказа",
+        tags=["Заказы"],
+    ),
+    destroy=extend_schema(
+        summary="Удалить заказ",
+        description="Удаление заказа пользователя",
+        tags=["Заказы"],
+    ),
+)
+class OrderViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Просмотр и подтверждение уже созданного заказа
+    """
+
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user).order_by("-created_at")
+
+    @extend_schema(
+        summary="Подтвердить заказ",
+        description="Устанавливает статус `confirmed` и возвращает обновлённый заказ. Письмо с адресом доставки «мокается» и не уходит на SMTP.",
+        tags=["Заказы"],
+        request=ConfirmOrderSerializer,
+        responses={200: OrderSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="confirm")
+    def confirm(self, request, pk=None):
+        order = self.get_object()
+
+        if order.status == "confirmed":
+            return Response(
+                {"detail": "Заказ уже подтверждён."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = ConfirmOrderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        contact = get_object_or_404(
+            Contact, pk=serializer.validated_data["contact_id"], user=request.user
+        )
+
+        order.status = "confirmed"
+        order.contact = contact
+        order.save()
+        order.email_sent_log = (
+            f"Письмо по заказу #{order.id} отправлено на {contact.email}"
+        )
+
+        return Response(OrderSerializer(order).data, status=status.HTTP_200_OK)

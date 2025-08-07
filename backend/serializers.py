@@ -1,7 +1,15 @@
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
 from rest_framework import serializers
-from .models import User, EmailConfirmToken, ProductParameter, ProductInfo, Contact, OrderItem, Order
+from .models import (
+    User,
+    EmailConfirmToken,
+    ProductParameter,
+    ProductInfo,
+    Contact,
+    OrderItem,
+    Order,
+)
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -176,7 +184,7 @@ class OrderItemSerializer(serializers.Serializer):
 
 
 class OrderSerializer(serializers.Serializer):
-    items = OrderItemSerializer(many=True, read_only=True, source="items")
+    items = OrderItemSerializer(many=True, read_only=True)
     contact = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:

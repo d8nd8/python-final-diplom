@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CartViewSet, ContactViewSet
+from .views import CartViewSet, ContactViewSet, OrderViewSet
 from .views import (
     RegisterView,
     LoginView,
@@ -12,6 +12,7 @@ from .views import (
 router = DefaultRouter()
 router.register(r"cart", CartViewSet, basename="cart")
 router.register(r"contacts", ContactViewSet, basename="contacts")
+router.register(r"orders", OrderViewSet, basename="orders")
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="auth-register"),
