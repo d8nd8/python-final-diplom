@@ -1,0 +1,47 @@
+name: 'Coverage Badge'
+on:
+  push:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+
+jobs:
+  coverage-badge:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run tests with coverage
+      run: |
+        coverage run --source=backend manage.py test backend.test_views
+        coverage report --format=total > coverage_total.txt
+        
+    - name: Generate badge
+      run: |
+        COVERAGE=$(cat coverage_total.txt | grep TOTAL | awk '{print $4}' | sed 's/%//')
+        echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+        
+    - name: Create coverage badge
+      uses: schneegans/dynamic-badges-action@v1.6.0
+      with:
+        auth: ${{ secrets.GIST_SECRET }}
+        gistID: YOUR_GIST_ID_HERE  # ⚠️ ЗАМЕНИТЕ НА РЕАЛЬНЫЙ GIST ID!
+        filename: coverage.json
+        label: coverage
+        message: ${{ env.COVERAGE }}%
+        namedLogo: python
+        color: green
+        style: flat

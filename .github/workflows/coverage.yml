@@ -1,0 +1,45 @@
+name: 'Coverage Report'
+on:
+  pull_request:
+    branches:
+      - master
+      - main
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run tests with coverage
+      run: |
+        coverage run --source=backend manage.py test backend.test_views
+        coverage xml -o coverage.xml
+        
+    - name: Publish coverage report
+      uses: orgoro/coverage@v3.2
+      with:
+        coverageFile: coverage.xml
+        token: ${{ secrets.GITHUB_TOKEN }}
+        thresholdAll: 0.5  # Минимальное покрытие 50%
+        thresholdNew: 0.6   # Для новых файлов 60%
+        thresholdModified: 0.5  # Для измененных файлов 50%
+        passIcon: '🟢'
+        failIcon: '🔴'
+        sourceDir: './backend'
