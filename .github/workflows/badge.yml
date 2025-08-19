@@ -29,19 +29,27 @@ jobs:
         coverage run --source=backend manage.py test backend.test_views
         coverage report --format=total > coverage_total.txt
         
-    - name: Generate badge
+    - name: Show coverage
       run: |
-        COVERAGE=$(cat coverage_total.txt | grep TOTAL | awk '{print $4}' | sed 's/%//')
-        echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+        echo "=== COVERAGE REPORT ==="
+        cat coverage_total.txt
+        echo "======================="
         
-    - name: Create coverage badge
-      uses: schneegans/dynamic-badges-action@v1.6.0
-      with:
-        auth: ${{ secrets.GITHUB_TOKEN }}
-        gistID: d2bd93564af1f01dac53715a5ceac5c2
-        filename: coverage.json
-        label: coverage
-        message: ${{ env.COVERAGE }}%
-        namedLogo: python
-        color: green
-        style: flat
+        COVERAGE=$(cat coverage_total.txt | grep TOTAL | awk '{print $4}' | sed 's/%//')
+        echo "Coverage: $COVERAGE%"
+        
+        # Определяем цвет бейджа
+        if [ $COVERAGE -ge 80 ]; then
+          COLOR="brightgreen"
+        elif [ $COVERAGE -ge 60 ]; then
+          COLOR="green"
+        elif [ $COVERAGE -ge 40 ]; then
+          COLOR="yellow"
+        elif [ $COVERAGE -ge 20 ]; then
+          COLOR="orange"
+        else
+          COLOR="red"
+        fi
+        
+        echo "Badge URL: https://img.shields.io/badge/coverage-${COVERAGE}%25-${COLOR}"
+        echo "You can manually update your README with this badge URL"
