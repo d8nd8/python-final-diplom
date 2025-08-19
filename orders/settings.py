@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from django.templatetags.static import static
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -14,9 +15,12 @@ DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG", "False") == "True"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",")
 
 INSTALLED_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
+    "unfold.contrib.import_export",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -26,6 +30,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "django_filters",
     "rest_framework",
+    "import_export",
     "backend",
 ]
 
@@ -50,7 +55,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -145,4 +150,148 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "SWAGGER_UI_SETTINGS": {"filter": True, "displayRequestDuration": True},
     "COMPONENT_SPLIT_REQUEST": True,
+}
+
+UNFOLD = {
+    "SITE_URL": "/",
+    "SITE_HEADER": "Админ-панель",
+    "SITE_SYMBOL": "shopping_cart",
+    "STYLES": [
+        lambda request: static("css/styles.css"),
+    ],
+    "SCRIPTS": [
+        lambda request: static("js/scripts.js"),
+    ],
+    "BORDER_RADIUS": "10px",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+        "navigation": [
+            {
+                "title": "Пользователи",
+                "items": [
+                    {
+                        "title": "Пользователи",
+                        "icon": "person",
+                        "link": lambda request: "/admin/backend/user/",
+                    },
+                    {
+                        "title": "Контакты",
+                        "icon": "contact_mail",
+                        "link": lambda request: "/admin/backend/contact/",
+                    },
+                ]
+            },
+            {
+                "title": "Магазины",
+                "items": [
+                    {
+                        "title": "Магазины",
+                        "icon": "store",
+                        "link": lambda request: "/admin/backend/shop/",
+                    },
+                    {
+                        "title": "Категории",
+                        "icon": "category",
+                        "link": lambda request: "/admin/backend/category/",
+                    },
+                ]
+            },
+            {
+                "title": "Товары",
+                "items": [
+                    {
+                        "title": "Товары",
+                        "icon": "inventory",
+                        "link": lambda request: "/admin/backend/product/",
+                    },
+                    {
+                        "title": "Информация о товарах",
+                        "icon": "info",
+                        "link": lambda request: "/admin/backend/productinfo/",
+                    },
+                    {
+                        "title": "Параметры",
+                        "icon": "settings",
+                        "link": lambda request: "/admin/backend/parameter/",
+                    },
+                    {
+                        "title": "Параметры товаров",
+                        "icon": "tune",
+                        "link": lambda request: "/admin/backend/productparameter/",
+                    },
+                ]
+            },
+            {
+                "title": "Заказы",
+                "items": [
+                    {
+                        "title": "Заказы",
+                        "icon": "shopping_cart",
+                        "link": lambda request: "/admin/backend/order/",
+                    },
+                    {
+                        "title": "Элементы заказов",
+                        "icon": "list",
+                        "link": lambda request: "/admin/backend/orderitem/",
+                    },
+                ]
+            },
+            {
+                "title": "Корзина",
+                "items": [
+                    {
+                        "title": "Корзины",
+                        "icon": "shopping_basket",
+                        "link": lambda request: "/admin/backend/cart/",
+                    },
+                    {
+                        "title": "Элементы корзин",
+                        "icon": "list",
+                        "link": lambda request: "/admin/backend/cartitem/",
+                    },
+                ]
+            },
+            {
+                "title": "Токены",
+                "items": [
+                    {
+                        "title": "Токены подтверждения",
+                        "icon": "key",
+                        "link": lambda request: "/admin/backend/emailconfirmtoken/",
+                    },
+                ]
+            },
+        ],
+    },
+    "COLORS": {
+        "primary": {
+            "50": "248 250 245",
+            "100": "240 245 235",
+            "200": "225 235 215",
+            "300": "200 220 185",
+            "400": "175 205 155",
+            "500": "150 190 125",
+            "600": "125 175 105",
+            "700": "100 160 85",
+            "800": "75 145 65",
+            "900": "50 130 45",
+            "950": "35 115 35",
+        },
+        "base": {
+            "50": "251 251 248",
+            "100": "241 241 236",
+            "200": "225 226 220",
+            "300": "205 206 199",
+            "400": "174 175 168",
+            "500": "143 144 137",
+            "600": "113 114 107",
+            "700": "89 90 84",
+            "800": "54 55 50",
+            "900": "31 32 38",
+            "950": "30 31 28",
+        },
+    },
 }

@@ -4,7 +4,7 @@ from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
-    path("", RedirectView.as_view(url="api/swagger/", permanent=False)),
+    path("", RedirectView.as_view(url="admin/", permanent=False)),
     path("admin/", admin.site.urls),
     path("api/schema-yaml/", SpectacularAPIView.as_view(), name="schema-yaml"),
     path(

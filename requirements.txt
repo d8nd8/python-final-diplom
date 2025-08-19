@@ -50,3 +50,7 @@ pytest-django==4.7.0
 pytest-cov==4.1.0
 coverage==7.3.2
 factory-boy==3.3.0
+
+# Admin interface dependencies
+django-unfold==0.52.0
+django-import-export==4.3.1
