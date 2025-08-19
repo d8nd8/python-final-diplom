@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "django_filters",
     "rest_framework",
     "import_export",
+    "social_django",
     "backend",
 ]
 
@@ -305,3 +306,74 @@ UNFOLD = {
         },
     },
 }
+
+# Social Authentication Settings
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.github.GithubOAuth2',
+    'social_core.backends.vk.VKOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+# Social Auth URLs
+LOGIN_URL = '/admin/login/'
+LOGIN_REDIRECT_URL = '/admin/'
+LOGOUT_URL = '/admin/logout/'
+LOGOUT_REDIRECT_URL = '/admin/login/'
+
+# Social Auth Pipeline
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.social_auth.associate_by_email',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+)
+
+# Social Auth Settings
+SOCIAL_AUTH_RAISE_EXCEPTIONS = False
+SOCIAL_AUTH_LOGIN_ERROR_URL = '/admin/login/'
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/admin/'
+SOCIAL_AUTH_NEW_USER_REDIRECT_URL = '/admin/'
+SOCIAL_AUTH_DISCONNECT_REDIRECT_URL = '/admin/'
+
+# GitHub OAuth2
+SOCIAL_AUTH_GITHUB_KEY = os.getenv('GITHUB_OAUTH2_KEY', '')
+SOCIAL_AUTH_GITHUB_SECRET = os.getenv('GITHUB_OAUTH2_SECRET', '')
+
+# VK OAuth2
+SOCIAL_AUTH_VK_OAUTH2_KEY = os.getenv('VK_OAUTH2_KEY', '')
+SOCIAL_AUTH_VK_OAUTH2_SECRET = os.getenv('VK_OAUTH2_SECRET', '')
+
+# User model fields
+SOCIAL_AUTH_USER_MODEL = 'backend.User'
+SOCIAL_AUTH_ADMIN_USER_SEARCH_FIELDS = ['username', 'first_name', 'email']
+
+# Admin logout redirect
+ADMIN_LOGOUT_REDIRECT_URL = '/admin/login/'
+
+# Django admin settings
+ADMIN_SITE_HEADER = "Netology Shop Admin"
+ADMIN_SITE_TITLE = "Netology Shop Admin Portal"
+ADMIN_INDEX_TITLE = "Welcome to Netology Shop Admin Portal"
+
+# Django logout settings
+LOGOUT_REDIRECT_URL = '/admin/login/'
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Celery settings
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 минут

@@ -7,6 +7,11 @@ from .views import (
     ConfirmEmailView,
     PartnerUpdateView,
     ProductListView,
+    SocialAuthView,
+    SocialAuthCallbackView,
+    SocialAuthStatusView,
+    AvatarUploadView,
+    AvatarStatusView,
 )
 
 router = DefaultRouter()
@@ -24,5 +29,10 @@ urlpatterns = [
         name="partner-upload-product-list",
     ),
     path("products/", ProductListView.as_view(), name="product-list"),
+    path("social-auth/providers/", SocialAuthView.as_view(), name="social-providers"),
+    path("social-auth/status/", SocialAuthStatusView.as_view(), name="social-status"),
+    path("social-auth/callback/", SocialAuthCallbackView.as_view(), name="social-callback"),
+    path("profile/avatar/upload/", AvatarUploadView.as_view(), name="avatar-upload"),
+    path("profile/avatar/status/", AvatarStatusView.as_view(), name="avatar-status"),
     path("/", include(router.urls)),
 ]

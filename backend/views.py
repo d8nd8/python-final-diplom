@@ -1,13 +1,15 @@
+import os
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 from django_filters.rest_framework import DjangoFilterBackend
 from requests import get
 from rest_framework import generics, status, filters as drf_filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.parsers import JSONParser
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.response import Response
 from drf_spectacular.utils import (
     extend_schema,
@@ -42,6 +44,8 @@ from .serializers import (
     ContactSerializer,
     ConfirmOrderSerializer,
     OrderSerializer,
+    AvatarUploadSerializer,
+    AvatarStatusSerializer,
 )
 
 
@@ -260,15 +264,16 @@ class CartViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=["get"])
     def items(self, request):
         cart = self.get_cart()
-        return Response(self.get_serializer(cart).data)
+        items = CartItem.objects.filter(cart=cart)
+        return Response(self.get_serializer(items, many=True).data)
 
     @action(detail=False, methods=["post"])
     def add(self, request):
         cart = self.get_cart()
-        serializer = CartItemSerializer
+        serializer = CartItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         product_info = get_object_or_404(
-            ProductInfo, pk=serializer.validated_data["product_info"].id
+            ProductInfo, pk=serializer.validated_data["product_info"]
         )
         item, created = CartItem.objects.get_or_create(
             cart=cart,
@@ -304,19 +309,17 @@ class CartViewSet(viewsets.GenericViewSet):
         )
         order = Order.objects.create(
             user=request.user,
-            shop=cart.user.shop,
             contact=contact,
             status="pending",
         )
-        for item in cart.items.all():
+        for item in CartItem.objects.filter(cart=cart):
             OrderItem.objects.create(
                 order=order,
                 product=item.product_info,
-                shop=item.product_info.shop,
                 quantity=item.quantity,
             )
 
-        cart.items.all().delete()
+        CartItem.objects.filter(cart=cart).delete()
 
         return Response(OrderSerializer(order).data, status=201)
 
@@ -439,3 +442,234 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
         return Response(OrderSerializer(order).data, status=status.HTTP_200_OK)
+
+
+class SocialAuthView(APIView):
+    """
+    API для авторизации через социальные сети
+    """
+    permission_classes = []
+
+    @extend_schema(
+        summary="Получить доступные провайдеры OAuth2",
+        description="Возвращает список доступных провайдеров для авторизации",
+        tags=["OAuth2"],
+        responses={
+            200: OpenApiResponse(description="Список провайдеров"),
+        },
+    )
+    def get(self, request):
+        """Получить список доступных провайдеров"""
+        providers = [
+            {
+                "name": "github",
+                "auth_url": f"/social-auth/login/github/",
+                "display_name": "GitHub"
+            },
+            {
+                "name": "vk-oauth2", 
+                "auth_url": f"/social-auth/login/vk-oauth2/",
+                "display_name": "VK"
+            }
+        ]
+        return Response(providers)
+
+
+class SocialAuthCallbackView(APIView):
+    """
+    Обработка callback'а от OAuth2 провайдеров
+    """
+    permission_classes = []
+
+    @extend_schema(
+        summary="OAuth2 callback",
+        description="Endpoint для обработки callback'а от OAuth2 провайдеров",
+        tags=["OAuth2"],
+        responses={
+            200: OpenApiResponse(description="Успешная авторизация"),
+            400: OpenApiResponse(description="Ошибка авторизации"),
+        },
+    )
+    def get(self, request):
+        """Обработка GET запроса от OAuth2 провайдера"""
+        # Этот endpoint будет обрабатываться автоматически social_django
+        # Здесь можно добавить дополнительную логику
+        return Response({
+            "message": "OAuth2 callback received",
+            "status": "success"
+        })
+
+
+class SocialAuthStatusView(APIView):
+    """
+    Проверка статуса авторизации через соцсети
+    """
+    permission_classes = []
+
+    @extend_schema(
+        summary="Статус авторизации",
+        description="Проверка статуса авторизации пользователя",
+        tags=["OAuth2"],
+        responses={
+            200: OpenApiResponse(description="Статус авторизации"),
+        },
+    )
+    def get(self, request):
+        """Получить статус авторизации"""
+        if request.user.is_authenticated:
+            # Получаем связанные соцсети
+            from social_django.models import UserSocialAuth
+            social_accounts = UserSocialAuth.objects.filter(user=request.user)
+            
+            providers = []
+            for account in social_accounts:
+                providers.append({
+                    "provider": account.provider,
+                    "uid": account.uid,
+                    "extra_data": account.extra_data
+                })
+            
+            return Response({
+                "authenticated": True,
+                "user": {
+                    "id": request.user.id,
+                    "username": request.user.username,
+                    "email": request.user.email
+                },
+                "social_accounts": providers
+            })
+        else:
+            return Response({
+                "authenticated": False,
+                "message": "User not authenticated"
+            })
+
+
+class AvatarUploadView(APIView):
+    """
+    API для загрузки аватарки пользователя
+    """
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    @extend_schema(
+        summary="Загрузить аватарку",
+        description="Асинхронная загрузка и обработка аватарки пользователя через Celery",
+        tags=["Профиль"],
+        request=AvatarUploadSerializer,
+        responses={
+            202: OpenApiResponse(description="Аватарка принята в обработку"),
+            400: OpenApiResponse(description="Ошибка валидации"),
+            401: OpenApiResponse(description="Не авторизован"),
+        },
+    )
+    def post(self, request):
+        """Загрузить аватарку пользователя"""
+        serializer = AvatarUploadSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            try:
+                # Сохраняем временный файл
+                avatar_file = request.FILES['avatar']
+                temp_path = os.path.join(settings.MEDIA_ROOT, 'avatars', 'temp', f"temp_{request.user.id}_{avatar_file.name}")
+                
+                # Создаем папку если не существует
+                os.makedirs(os.path.dirname(temp_path), exist_ok=True)
+                
+                with open(temp_path, 'wb+') as destination:
+                    for chunk in avatar_file.chunks():
+                        destination.write(chunk)
+                
+                # Запускаем асинхронную обработку через Celery
+                from .tasks.avatar_tasks import process_avatar, cleanup_old_avatars
+                
+                # Сначала очищаем старые аватарки
+                cleanup_task = cleanup_old_avatars.delay(request.user.id)
+                
+                # Затем обрабатываем новую
+                process_task = process_avatar.delay(request.user.id, temp_path)
+                
+                return Response({
+                    'message': 'Аватарка принята в обработку',
+                    'task_id': process_task.id,
+                    'cleanup_task_id': cleanup_task.id,
+                    'status': 'processing'
+                }, status=status.HTTP_202_ACCEPTED)
+                
+            except Exception as e:
+                return Response({
+                    'error': f'Ошибка при загрузке: {str(e)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AvatarStatusView(APIView):
+    """
+    API для проверки статуса обработки аватарки
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="Статус обработки аватарки",
+        description="Проверка статуса асинхронной обработки аватарки",
+        tags=["Профиль"],
+        parameters=[
+            OpenApiParameter(
+                name="task_id",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description="ID задачи Celery",
+                required=True
+            ),
+        ],
+        responses={
+            200: AvatarStatusSerializer,
+            400: OpenApiResponse(description="Не указан task_id"),
+            401: OpenApiResponse(description="Не авторизован"),
+        },
+    )
+    def get(self, request):
+        """Получить статус обработки аватарки"""
+        task_id = request.query_params.get('task_id')
+        
+        if not task_id:
+            return Response({
+                'error': 'Не указан task_id'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            from celery.result import AsyncResult
+            
+            # Получаем результат задачи
+            task_result = AsyncResult(task_id)
+            
+            if task_result.ready():
+                if task_result.successful():
+                    result = task_result.result
+                    return Response({
+                        'task_id': task_id,
+                        'status': 'completed',
+                        'message': result.get('message', 'Обработка завершена'),
+                        'progress': 100
+                    })
+                else:
+                    return Response({
+                        'task_id': task_id,
+                        'status': 'failed',
+                        'message': 'Ошибка при обработке',
+                        'progress': 0
+                    })
+            else:
+                # Задача еще выполняется
+                return Response({
+                    'task_id': task_id,
+                    'status': 'processing',
+                    'message': 'Аватарка обрабатывается',
+                    'progress': 50  # Примерный прогресс
+                })
+                
+        except Exception as e:
+            return Response({
+                'error': f'Ошибка при получении статуса: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
