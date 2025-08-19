@@ -3,6 +3,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 from django.db.models import Count
+from django.conf import settings
 
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.contrib.filters.admin import RangeDateFilter, RelatedDropdownFilter, ChoicesDropdownFilter, RangeNumericFilter
@@ -1109,4 +1110,13 @@ class EmailConfirmTokenAdmin(ModelAdmin):
     )
     def is_expired_badge(self, obj):
         return obj.is_expired, "Истек" if obj.is_expired else "Активен"
+
+
+# Настройки админки
+admin.site.site_header = getattr(settings, 'ADMIN_SITE_HEADER', 'Netology Shop Admin')
+admin.site.site_title = getattr(settings, 'ADMIN_SITE_TITLE', 'Netology Shop Admin Portal')
+admin.site.index_title = getattr(settings, 'ADMIN_INDEX_TITLE', 'Welcome to Netology Shop Admin Portal')
+
+# Настройка logout redirect для админки
+admin.site.logout_template = 'admin/logout.html'
 
