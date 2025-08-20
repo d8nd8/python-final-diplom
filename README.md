@@ -164,10 +164,12 @@ SENTRY_ENVIRONMENT=development
 ### Скриншоты интерфейса
 
 #### Страница входа в админку
-![Страница входа](screenshots/1.png)
+![Панель админки](screenshots/2.png)
 
 #### Основная панель админки
-![Панель админки](screenshots/2.png)
+![Страница входа](screenshots/1.png)
+
+
 
 ## API документация
 
