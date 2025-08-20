@@ -193,36 +193,27 @@ class OrderSerializer(serializers.Serializer):
 
 
 class AvatarUploadSerializer(serializers.Serializer):
-    """
-    Сериализатор для загрузки аватарки пользователя
-    """
     avatar = serializers.ImageField(
         max_length=None,
         allow_empty_file=False,
         use_url=False,
-        help_text="Загрузите изображение для профиля (JPG, PNG, GIF)"
+        help_text="Загрузите изображение для профиля (JPG, PNG, GIF)",
     )
-    
+
     def validate_avatar(self, value):
-        """
-        Валидация загружаемого изображения
-        """
-        # Проверяем размер файла (максимум 5MB)
         if value.size > 5 * 1024 * 1024:
             raise serializers.ValidationError("Размер файла не должен превышать 5MB")
-        
-        # Проверяем формат
-        allowed_formats = ['image/jpeg', 'image/png', 'image/gif']
+
+        allowed_formats = ["image/jpeg", "image/png", "image/gif"]
         if value.content_type not in allowed_formats:
-            raise serializers.ValidationError("Поддерживаются только форматы JPG, PNG и GIF")
-        
+            raise serializers.ValidationError(
+                "Поддерживаются только форматы JPG, PNG и GIF"
+            )
+
         return value
 
 
 class AvatarStatusSerializer(serializers.Serializer):
-    """
-    Сериализатор для статуса обработки аватарки
-    """
     task_id = serializers.CharField(help_text="ID задачи Celery")
     status = serializers.CharField(help_text="Статус обработки")
     message = serializers.CharField(help_text="Сообщение о статусе")

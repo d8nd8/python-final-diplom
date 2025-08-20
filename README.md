@@ -25,6 +25,9 @@
 - Управление корзиной и оформлением заказов
 - Отправка email с подтверждением заказа
 - Администрирование статусов заказов
+- **OAuth2 авторизация через VK и GitHub**
+- **Асинхронная загрузка аватарок пользователей (Celery)**
+- **Мониторинг ошибок и производительности (Sentry)**
 
 ## Требования
 
@@ -99,6 +102,12 @@ cd python-final-diplom
 
 4. Приложение доступно на `http://localhost:8000`.
 
+#### Docker сервисы
+- **web** - Django приложение
+- **redis** - Redis для Celery брокера
+- **celery** - Celery worker для асинхронных задач
+- **celery-beat** - Celery beat для периодических задач
+
 ## Переменные окружения
 
 Пример `.env`:
@@ -113,12 +122,53 @@ DB_PORT=5432
 SECRET_KEY=your_secret_key
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Social Authentication
+GITHUB_OAUTH2_KEY=your_github_oauth_key
+GITHUB_OAUTH2_SECRET=your_github_oauth_secret
+VK_OAUTH2_KEY=your_vk_oauth_key
+VK_OAUTH2_SECRET=your_vk_oauth_secret
+
+# Celery
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+
+# Sentry (опционально)
+SENTRY_DSN=your_sentry_dsn_here
+SENTRY_ENVIRONMENT=development
 ```
+
+### Настройка Sentry
+
+Для мониторинга ошибок и производительности:
+
+1. Создать проект на [sentry.io](https://sentry.io)
+2. Получить DSN из настроек проекта
+3. Добавить в `.env`: `SENTRY_DSN=your_dsn_here`
+
+**Готово!** Sentry автоматически начнет отслеживать ошибки и производительность.
+
+> **Примечание:** Код Sentry уже готов к работе. Если DSN не указан, приложение будет работать без мониторинга, но все функции останутся доступными.
 
 ## API документация
 
 - Swagger: `http://localhost:8000/api/swagger/`
 - OpenAPI схема: `http://localhost:8000/api/schema/`
+
+### Новые API endpoints
+
+#### Социальная авторизация
+- `GET /api/social-auth/providers/` - список доступных провайдеров
+- `GET /api/social-auth/status/` - статус авторизации пользователя
+- `GET /api/social-auth/callback/` - callback для OAuth2
+
+#### Управление аватарками
+- `POST /api/profile/avatar/upload/` - загрузка аватарки (асинхронно)
+- `GET /api/profile/avatar/status/` - статус обработки аватарки
+
+#### Тестирование Sentry
+- `GET /api/test/sentry/?error_type=...` - тест различных типов ошибок
+- `POST /api/test/sentry/` - тест отправки ошибок через POST
 
 ## Тестирование
 

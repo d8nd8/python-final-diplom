@@ -32,7 +32,11 @@ urlpatterns = [
     path("products/", ProductListView.as_view(), name="product-list"),
     path("social-auth/providers/", SocialAuthView.as_view(), name="social-providers"),
     path("social-auth/status/", SocialAuthStatusView.as_view(), name="social-status"),
-    path("social-auth/callback/", SocialAuthCallbackView.as_view(), name="social-callback"),
+    path(
+        "social-auth/callback/",
+        SocialAuthCallbackView.as_view(),
+        name="social-callback",
+    ),
     path("profile/avatar/upload/", AvatarUploadView.as_view(), name="avatar-upload"),
     path("profile/avatar/status/", AvatarStatusView.as_view(), name="avatar-status"),
     path("test/sentry/", SentryTestView.as_view(), name="sentry-test"),

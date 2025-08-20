@@ -1,5 +1,6 @@
 import os
-# import sentry_sdk  # Временно отключен для тестирования
+
+import sentry_sdk
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.http import JsonResponse
@@ -449,6 +450,7 @@ class SocialAuthView(APIView):
     """
     API для авторизации через социальные сети
     """
+
     permission_classes = []
 
     @extend_schema(
@@ -464,14 +466,14 @@ class SocialAuthView(APIView):
         providers = [
             {
                 "name": "github",
-                "auth_url": f"/social-auth/login/github/",
-                "display_name": "GitHub"
+                "auth_url": "/social-auth/login/github/",
+                "display_name": "GitHub",
             },
             {
-                "name": "vk-oauth2", 
-                "auth_url": f"/social-auth/login/vk-oauth2/",
-                "display_name": "VK"
-            }
+                "name": "vk-oauth2",
+                "auth_url": "/social-auth/login/vk-oauth2/",
+                "display_name": "VK",
+            },
         ]
         return Response(providers)
 
@@ -480,6 +482,7 @@ class SocialAuthCallbackView(APIView):
     """
     Обработка callback'а от OAuth2 провайдеров
     """
+
     permission_classes = []
 
     @extend_schema(
@@ -493,18 +496,16 @@ class SocialAuthCallbackView(APIView):
     )
     def get(self, request):
         """Обработка GET запроса от OAuth2 провайдера"""
-        # Этот endpoint будет обрабатываться автоматически social_django
-        # Здесь можно добавить дополнительную логику
-        return Response({
-            "message": "OAuth2 callback received",
-            "status": "success"
-        })
+
+
+        return Response({"message": "OAuth2 callback received", "status": "success"})
 
 
 class SocialAuthStatusView(APIView):
     """
     Проверка статуса авторизации через соцсети
     """
+
     permission_classes = []
 
     @extend_schema(
@@ -518,38 +519,43 @@ class SocialAuthStatusView(APIView):
     def get(self, request):
         """Получить статус авторизации"""
         if request.user.is_authenticated:
-            # Получаем связанные соцсети
+
             from social_django.models import UserSocialAuth
+
             social_accounts = UserSocialAuth.objects.filter(user=request.user)
-            
+
             providers = []
             for account in social_accounts:
-                providers.append({
-                    "provider": account.provider,
-                    "uid": account.uid,
-                    "extra_data": account.extra_data
-                })
-            
-            return Response({
-                "authenticated": True,
-                "user": {
-                    "id": request.user.id,
-                    "username": request.user.username,
-                    "email": request.user.email
-                },
-                "social_accounts": providers
-            })
+                providers.append(
+                    {
+                        "provider": account.provider,
+                        "uid": account.uid,
+                        "extra_data": account.extra_data,
+                    }
+                )
+
+            return Response(
+                {
+                    "authenticated": True,
+                    "user": {
+                        "id": request.user.id,
+                        "username": request.user.username,
+                        "email": request.user.email,
+                    },
+                    "social_accounts": providers,
+                }
+            )
         else:
-            return Response({
-                "authenticated": False,
-                "message": "User not authenticated"
-            })
+            return Response(
+                {"authenticated": False, "message": "User not authenticated"}
+            )
 
 
 class AvatarUploadView(APIView):
     """
     API для загрузки аватарки пользователя
     """
+
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
@@ -567,41 +573,50 @@ class AvatarUploadView(APIView):
     def post(self, request):
         """Загрузить аватарку пользователя"""
         serializer = AvatarUploadSerializer(data=request.data)
-        
+
         if serializer.is_valid():
             try:
-                # Сохраняем временный файл
-                avatar_file = request.FILES['avatar']
-                temp_path = os.path.join(settings.MEDIA_ROOT, 'avatars', 'temp', f"temp_{request.user.id}_{avatar_file.name}")
-                
-                # Создаем папку если не существует
+
+                avatar_file = request.FILES["avatar"]
+                temp_path = os.path.join(
+                    settings.MEDIA_ROOT,
+                    "avatars",
+                    "temp",
+                    f"temp_{request.user.id}_{avatar_file.name}",
+                )
+
+
                 os.makedirs(os.path.dirname(temp_path), exist_ok=True)
-                
-                with open(temp_path, 'wb+') as destination:
+
+                with open(temp_path, "wb+") as destination:
                     for chunk in avatar_file.chunks():
                         destination.write(chunk)
-                
-                # Запускаем асинхронную обработку через Celery
+
+
                 from .tasks.avatar_tasks import process_avatar, cleanup_old_avatars
-                
-                # Сначала очищаем старые аватарки
+
+
                 cleanup_task = cleanup_old_avatars.delay(request.user.id)
-                
-                # Затем обрабатываем новую
+
+
                 process_task = process_avatar.delay(request.user.id, temp_path)
-                
-                return Response({
-                    'message': 'Аватарка принята в обработку',
-                    'task_id': process_task.id,
-                    'cleanup_task_id': cleanup_task.id,
-                    'status': 'processing'
-                }, status=status.HTTP_202_ACCEPTED)
-                
+
+                return Response(
+                    {
+                        "message": "Аватарка принята в обработку",
+                        "task_id": process_task.id,
+                        "cleanup_task_id": cleanup_task.id,
+                        "status": "processing",
+                    },
+                    status=status.HTTP_202_ACCEPTED,
+                )
+
             except Exception as e:
-                return Response({
-                    'error': f'Ошибка при загрузке: {str(e)}'
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+                return Response(
+                    {"error": f"Ошибка при загрузке: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -609,6 +624,7 @@ class AvatarStatusView(APIView):
     """
     API для проверки статуса обработки аватарки
     """
+
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
@@ -621,7 +637,7 @@ class AvatarStatusView(APIView):
                 type=str,
                 location=OpenApiParameter.QUERY,
                 description="ID задачи Celery",
-                required=True
+                required=True,
             ),
         ],
         responses={
@@ -632,54 +648,62 @@ class AvatarStatusView(APIView):
     )
     def get(self, request):
         """Получить статус обработки аватарки"""
-        task_id = request.query_params.get('task_id')
-        
+        task_id = request.query_params.get("task_id")
+
         if not task_id:
-            return Response({
-                'error': 'Не указан task_id'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(
+                {"error": "Не указан task_id"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
         try:
             from celery.result import AsyncResult
-            
-            # Получаем результат задачи
+
+
             task_result = AsyncResult(task_id)
-            
+
             if task_result.ready():
                 if task_result.successful():
                     result = task_result.result
-                    return Response({
-                        'task_id': task_id,
-                        'status': 'completed',
-                        'message': result.get('message', 'Обработка завершена'),
-                        'progress': 100
-                    })
+                    return Response(
+                        {
+                            "task_id": task_id,
+                            "status": "completed",
+                            "message": result.get("message", "Обработка завершена"),
+                            "progress": 100,
+                        }
+                    )
                 else:
-                    return Response({
-                        'task_id': task_id,
-                        'status': 'failed',
-                        'message': 'Ошибка при обработке',
-                        'progress': 0
-                    })
+                    return Response(
+                        {
+                            "task_id": task_id,
+                            "status": "failed",
+                            "message": "Ошибка при обработке",
+                            "progress": 0,
+                        }
+                    )
             else:
-                # Задача еще выполняется
-                return Response({
-                    'task_id': task_id,
-                    'status': 'processing',
-                    'message': 'Аватарка обрабатывается',
-                    'progress': 50  # Примерный прогресс
-                })
-                
+
+                return Response(
+                    {
+                        "task_id": task_id,
+                        "status": "processing",
+                        "message": "Аватарка обрабатывается",
+                        "progress": 50,
+                    }
+                )
+
         except Exception as e:
-            return Response({
-                'error': f'Ошибка при получении статуса: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": f"Ошибка при получении статуса: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class SentryTestView(APIView):
     """
     API для тестирования интеграции с Sentry
     """
+
     permission_classes = []
 
     @extend_schema(
@@ -692,7 +716,7 @@ class SentryTestView(APIView):
                 type=str,
                 location=OpenApiParameter.QUERY,
                 description="Тип ошибки для тестирования (exception, validation, custom)",
-                required=False
+                required=False,
             ),
         ],
         responses={
@@ -703,107 +727,112 @@ class SentryTestView(APIView):
     )
     def get(self, request):
         """Тестирует различные типы ошибок для Sentry"""
-        error_type = request.query_params.get('error_type', 'exception')
-        
-        if error_type == 'exception':
-            # Вызываем исключение для тестирования Sentry
+        error_type = request.query_params.get("error_type", "exception")
+
+        if error_type == "exception":
+
             raise Exception("Это тестовое исключение для Sentry!")
-            
-        elif error_type == 'validation':
+
+        elif error_type == "validation":
             # Ошибка валидации
             raise ValidationError("Тестовая ошибка валидации")
-            
-        elif error_type == 'custom':
-            # Кастомная ошибка с дополнительным контекстом
-            # with sentry_sdk.push_scope() as scope:
-            #     scope.set_tag("test_type", "custom_error")
-            #     scope.set_extra("test_data", {"user_id": 123, "action": "sentry_test"})
-            #     scope.set_user({"id": 123, "username": "test_user"})
-            #     
-            #     # Логируем кастомное событие
-            #     sentry_sdk.capture_message(
-            #         "Кастомное тестовое сообщение для Sentry",
-            #         level="warning"
-            #     )
-            #     
-            #     # Вызываем исключение
-            #     raise ValueError("Кастомная ошибка с дополнительным контекстом")
-            
-            # Временно упрощенная версия
+
+        elif error_type == "custom":
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             raise ValueError("Кастомная ошибка с дополнительным контекстом")
-        
-        elif error_type == 'performance':
+
+        elif error_type == "performance":
             # Тест производительности
-            # with sentry_sdk.start_transaction(op="test", name="sentry_test_transaction") as transaction:
-            #     # Имитируем некоторую работу
-            #     import time
-            #     time.sleep(0.1)
-            #     
-            #     # Создаем span
-            #     with sentry_sdk.start_span(op="test_span", description="Тестовый span"):
-            #         time.sleep(0.05)
-            #     
-            #     transaction.set_tag("test_type", "performance")
-            #     return Response({
-            #         'message': 'Тест производительности выполнен',
-            #         'transaction_id': sentry_sdk.get_current_hub().client.transport.options.get('dsn', 'unknown')
-            #     })
-            
-            # Временно упрощенная версия
-            import time
-            time.sleep(0.1)
-            return Response({
-                'message': 'Тест производительности выполнен (без Sentry)',
-                'error_type': error_type
-            })
-        
-        # По умолчанию возвращаем успех
-        return Response({
-            'message': 'Тест Sentry выполнен успешно (без Sentry)',
-            'error_type': error_type,
-            'sentry_dsn': 'not_configured'
-        })
+            if sentry_sdk.get_current_hub().client:
+                with sentry_sdk.start_transaction(op="test", name="sentry_test_transaction") as transaction:
+                    # Имитируем некоторую работу
+                    import time
+                    time.sleep(0.1)
+                    
+                    # Создаем span
+                    with sentry_sdk.start_span(op="test_span", description="Тестовый span"):
+                        time.sleep(0.05)
+                    
+                    transaction.set_tag("test_type", "performance")
+                    return Response({
+                        'message': 'Тест производительности выполнен',
+                        'transaction_id': sentry_sdk.get_current_hub().client.transport.options.get('dsn', 'unknown')
+                    })
+            else:
+                # Fallback если Sentry не настроен
+                import time
+                time.sleep(0.1)
+                return Response(
+                    {
+                        "message": "Тест производительности выполнен (Sentry не настроен)",
+                        "error_type": error_type,
+                    }
+                )
+
+        return Response(
+            {
+                "message": "Тест Sentry выполнен успешно (без Sentry)",
+                "error_type": error_type,
+                "sentry_dsn": "not_configured",
+            }
+        )
 
     def post(self, request):
         """Тестирует отправку ошибок через POST"""
         try:
-            # Получаем данные из запроса
+
             data = request.data
-            
-            # Проверяем наличие обязательного поля
-            if 'test_field' not in data:
+
+
+            if "test_field" not in data:
                 raise ValidationError("Отсутствует обязательное поле 'test_field'")
-            
-            # Имитируем ошибку при обработке данных
-            if data.get('trigger_error'):
-                # with sentry_sdk.push_scope() as scope:
-                #     scope.set_tag("request_method", "POST")
-                #     scope.set_extra("request_data", data)
-                #     
-                #     # Логируем ошибку
-                #     sentry_sdk.capture_exception(
-                #         Exception("Ошибка при обработке POST запроса")
-                #     )
-                #     
-                #     return Response({
-                #         'error': 'Ошибка была отправлена в Sentry',
-                #         'data': data
-                #     }, status=status.HTTP_400_BAD_REQUEST)
-                
-                # Временно упрощенная версия
-                return Response({
-                    'error': 'Ошибка была бы отправлена в Sentry (если настроен)',
-                    'data': data
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            return Response({
-                'message': 'POST тест выполнен успешно',
-                'data': data
-            })
-            
+
+
+            if data.get("trigger_error"):
+                if sentry_sdk.get_current_hub().client:
+                    with sentry_sdk.push_scope() as scope:
+                        scope.set_extra("request_data", data)
+                        
+                        # Логируем ошибку
+                        sentry_sdk.capture_exception(
+                            Exception("Ошибка при обработке POST запроса")
+                        )
+                        
+                        return Response({
+                            'error': 'Ошибка была отправлена в Sentry',
+                            'data': data
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    # Fallback если Sentry не настроен
+                    return Response(
+                        {
+                            "error": "Ошибка была бы отправлена в Sentry (если настроен)",
+                            "data": data,
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            return Response({"message": "POST тест выполнен успешно", "data": data})
+
         except Exception as e:
-            # Отправляем ошибку в Sentry
-            # sentry_sdk.capture_exception(e)
-            return Response({
-                'error': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # Отправляем ошибку в Sentry если настроен
+            if sentry_sdk.get_current_hub().client:
+                sentry_sdk.capture_exception(e)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

@@ -4,15 +4,20 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('backend', '0002_remove_contact_contact_type_remove_contact_value_and_more'),
+        ("backend", "0002_remove_contact_contact_type_remove_contact_value_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='user',
-            name='avatar',
-            field=models.ImageField(blank=True, help_text='Загрузите изображение для профиля', null=True, upload_to='avatars/', verbose_name='Аватарка'),
+            model_name="user",
+            name="avatar",
+            field=models.ImageField(
+                blank=True,
+                help_text="Загрузите изображение для профиля",
+                null=True,
+                upload_to="avatars/",
+                verbose_name="Аватарка",
+            ),
         ),
     ]

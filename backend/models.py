@@ -111,7 +111,7 @@ class User(AbstractUser):
         upload_to="avatars/",
         blank=True,
         null=True,
-        help_text="Загрузите изображение для профиля"
+        help_text="Загрузите изображение для профиля",
     )
 
     def __str__(self):
