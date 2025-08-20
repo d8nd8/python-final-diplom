@@ -377,3 +377,25 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 минут
+
+# Sentry settings
+# Для тестирования временно отключен
+# import sentry_sdk
+# from sentry_sdk.integrations.django import DjangoIntegration
+
+# sentry_sdk.init(
+#     dsn=os.getenv('SENTRY_DSN', ''),
+#     integrations=[
+#         DjangoIntegration(),
+#     ],
+#     # Performance monitoring
+#     traces_sample_rate=1.0,
+#     # Set sampling rate for profiling - this is relative to traces_sample_rate
+#     profiles_sample_rate=1.0,
+#     # Enable auto-instrumentation
+#     auto_enabling_integrations=True,
+#     # Set environment
+#     environment=os.getenv('SENTRY_ENVIRONMENT', 'development'),
+#     # Enable debug mode for development
+#     debug=True,
+# )

@@ -7,6 +7,9 @@ WORKDIR /app
 
 RUN apt-get update \
     && apt-get install -y build-essential libpq-dev \
+       libjpeg-dev zlib1g-dev libfreetype6-dev \
+       liblcms2-dev libopenjp2-7-dev libtiff5-dev \
+       libwebp-dev tk-dev tcl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

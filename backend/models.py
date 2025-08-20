@@ -106,6 +106,13 @@ class User(AbstractUser):
         max_length=32,
         default="buyer",
     )
+    avatar = models.ImageField(
+        verbose_name="Аватарка",
+        upload_to="avatars/",
+        blank=True,
+        null=True,
+        help_text="Загрузите изображение для профиля"
+    )
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

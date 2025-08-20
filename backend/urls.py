@@ -12,6 +12,7 @@ from .views import (
     SocialAuthStatusView,
     AvatarUploadView,
     AvatarStatusView,
+    SentryTestView,
 )
 
 router = DefaultRouter()
@@ -34,5 +35,6 @@ urlpatterns = [
     path("social-auth/callback/", SocialAuthCallbackView.as_view(), name="social-callback"),
     path("profile/avatar/upload/", AvatarUploadView.as_view(), name="avatar-upload"),
     path("profile/avatar/status/", AvatarStatusView.as_view(), name="avatar-status"),
+    path("test/sentry/", SentryTestView.as_view(), name="sentry-test"),
     path("/", include(router.urls)),
 ]

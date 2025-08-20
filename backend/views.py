@@ -1,4 +1,5 @@
 import os
+# import sentry_sdk  # Временно отключен для тестирования
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.http import JsonResponse
@@ -672,4 +673,137 @@ class AvatarStatusView(APIView):
         except Exception as e:
             return Response({
                 'error': f'Ошибка при получении статуса: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SentryTestView(APIView):
+    """
+    API для тестирования интеграции с Sentry
+    """
+    permission_classes = []
+
+    @extend_schema(
+        summary="Тест Sentry",
+        description="Тестирует интеграцию с Sentry, вызывая различные типы ошибок",
+        tags=["Тестирование"],
+        parameters=[
+            OpenApiParameter(
+                name="error_type",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description="Тип ошибки для тестирования (exception, validation, custom)",
+                required=False
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(description="Тест выполнен успешно"),
+            400: OpenApiResponse(description="Ошибка валидации"),
+            500: OpenApiResponse(description="Внутренняя ошибка сервера"),
+        },
+    )
+    def get(self, request):
+        """Тестирует различные типы ошибок для Sentry"""
+        error_type = request.query_params.get('error_type', 'exception')
+        
+        if error_type == 'exception':
+            # Вызываем исключение для тестирования Sentry
+            raise Exception("Это тестовое исключение для Sentry!")
+            
+        elif error_type == 'validation':
+            # Ошибка валидации
+            raise ValidationError("Тестовая ошибка валидации")
+            
+        elif error_type == 'custom':
+            # Кастомная ошибка с дополнительным контекстом
+            # with sentry_sdk.push_scope() as scope:
+            #     scope.set_tag("test_type", "custom_error")
+            #     scope.set_extra("test_data", {"user_id": 123, "action": "sentry_test"})
+            #     scope.set_user({"id": 123, "username": "test_user"})
+            #     
+            #     # Логируем кастомное событие
+            #     sentry_sdk.capture_message(
+            #         "Кастомное тестовое сообщение для Sentry",
+            #         level="warning"
+            #     )
+            #     
+            #     # Вызываем исключение
+            #     raise ValueError("Кастомная ошибка с дополнительным контекстом")
+            
+            # Временно упрощенная версия
+            raise ValueError("Кастомная ошибка с дополнительным контекстом")
+        
+        elif error_type == 'performance':
+            # Тест производительности
+            # with sentry_sdk.start_transaction(op="test", name="sentry_test_transaction") as transaction:
+            #     # Имитируем некоторую работу
+            #     import time
+            #     time.sleep(0.1)
+            #     
+            #     # Создаем span
+            #     with sentry_sdk.start_span(op="test_span", description="Тестовый span"):
+            #         time.sleep(0.05)
+            #     
+            #     transaction.set_tag("test_type", "performance")
+            #     return Response({
+            #         'message': 'Тест производительности выполнен',
+            #         'transaction_id': sentry_sdk.get_current_hub().client.transport.options.get('dsn', 'unknown')
+            #     })
+            
+            # Временно упрощенная версия
+            import time
+            time.sleep(0.1)
+            return Response({
+                'message': 'Тест производительности выполнен (без Sentry)',
+                'error_type': error_type
+            })
+        
+        # По умолчанию возвращаем успех
+        return Response({
+            'message': 'Тест Sentry выполнен успешно (без Sentry)',
+            'error_type': error_type,
+            'sentry_dsn': 'not_configured'
+        })
+
+    def post(self, request):
+        """Тестирует отправку ошибок через POST"""
+        try:
+            # Получаем данные из запроса
+            data = request.data
+            
+            # Проверяем наличие обязательного поля
+            if 'test_field' not in data:
+                raise ValidationError("Отсутствует обязательное поле 'test_field'")
+            
+            # Имитируем ошибку при обработке данных
+            if data.get('trigger_error'):
+                # with sentry_sdk.push_scope() as scope:
+                #     scope.set_tag("request_method", "POST")
+                #     scope.set_extra("request_data", data)
+                #     
+                #     # Логируем ошибку
+                #     sentry_sdk.capture_exception(
+                #         Exception("Ошибка при обработке POST запроса")
+                #     )
+                #     
+                #     return Response({
+                #         'error': 'Ошибка была отправлена в Sentry',
+                #         'data': data
+                #     }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Временно упрощенная версия
+                return Response({
+                    'error': 'Ошибка была бы отправлена в Sentry (если настроен)',
+                    'data': data
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            return Response({
+                'message': 'POST тест выполнен успешно',
+                'data': data
+            })
+            
+        except Exception as e:
+            # Отправляем ошибку в Sentry
+            # sentry_sdk.capture_exception(e)
+            return Response({
+                'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
